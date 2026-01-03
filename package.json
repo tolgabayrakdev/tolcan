@@ -1,5 +1,5 @@
 {
-  "name": "@bayraktolga/tolcan-orm",
+  "name": "@bayraktolga/tolcan",
   "version": "0.1.0",
   "description": "A lightweight, model-based ORM for PostgreSQL with TypeScript support",
   "main": "dist/index.js",
