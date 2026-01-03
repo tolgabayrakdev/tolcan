@@ -1,0 +1,43 @@
+# Source files
+src/
+examples/
+
+# Development files
+tsconfig.json
+*.tsbuildinfo
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Test
+coverage/
+.nyc_output/
+*.test.ts
+*.spec.ts
+
+# Build artifacts (keep dist/ for publishing)
+# dist/ is needed, so don't ignore it
+
