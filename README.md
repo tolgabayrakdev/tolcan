@@ -2,6 +2,9 @@
 
 A lightweight, model-based ORM for PostgreSQL with TypeScript support. Tolcan provides a simple and intuitive API for database operations without requiring migrations.
 
+🇹🇷 [Türkçe Okumak İçin Buraya Tıkla](README-TR.md)
+
+
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12+-blue.svg)](https://www.postgresql.org/)
 [![License](https://img.shields.io/badge/license-Unlicense-green.svg)](LICENSE)
