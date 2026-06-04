@@ -33,10 +33,12 @@ yarn-error.log*
 .env.*.local
 
 # Test
+test/
 coverage/
 .nyc_output/
 *.test.ts
 *.spec.ts
+jest.config.js
 
 # Build artifacts (keep dist/ for publishing)
 # dist/ is needed, so don't ignore it

@@ -16,8 +16,25 @@ export interface QueryOptions {
   client?: PoolClient;
 }
 
+export interface WhereOperators {
+  $eq?: any;
+  $ne?: any;
+  $gt?: any;
+  $gte?: any;
+  $lt?: any;
+  $lte?: any;
+  $in?: any[];
+  $nin?: any[];
+  $like?: string;
+  $ilike?: string;
+  /** `true` -> IS NULL, `false` -> IS NOT NULL */
+  $null?: boolean;
+}
+
+export type WhereValue = any | WhereOperators;
+
 export interface WhereCondition {
-  [key: string]: any;
+  [key: string]: WhereValue;
 }
 
 export interface OrderBy {

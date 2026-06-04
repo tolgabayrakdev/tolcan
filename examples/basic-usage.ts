@@ -1,10 +1,18 @@
 import { connect, Model, transaction, raw } from 'tolcan';
 
-// Define a User model with serial primary key
+// Define a User model with serial primary key.
+// Declare typed fields to get full type safety on query results.
 class User extends Model {
   static tableName = 'users';
   static primaryKey = 'id';
-  static primaryKeyType = 'serial';
+  static primaryKeyType: 'serial' | 'uuid' = 'serial';
+
+  declare id: number;
+  declare name: string;
+  declare email: string;
+  declare age: number;
+  declare active: boolean;
+  declare created_at: Date;
 
   getTableName(): string {
     return 'users';
@@ -19,7 +27,11 @@ class User extends Model {
 class Product extends Model {
   static tableName = 'products';
   static primaryKey = 'id';
-  static primaryKeyType = 'uuid';
+  static primaryKeyType: 'serial' | 'uuid' = 'uuid';
+
+  declare id: string;
+  declare name: string;
+  declare price: number;
 
   getTableName(): string {
     return 'products';
@@ -57,12 +69,20 @@ async function main() {
     const allUsers = await User.findAll();
     console.log('All users:', allUsers);
 
-    // Find with conditions
+    // Find with conditions using operators ($lt, $gt, $gte, $lte, $ne,
+    // $in, $nin, $like, $ilike, $null)
     const youngUsers = await User.findAll({
-      where: { age: { $lt: 25 } },
+      where: { age: { $lt: 25 }, active: true },
       orderBy: { column: 'created_at', direction: 'DESC' },
       limit: 10
     });
+    console.log('Young active users:', youngUsers);
+
+    // Operator examples
+    const adults = await User.findAll({ where: { age: { $gte: 18, $lte: 65 } } });
+    const byName = await User.findAll({ where: { name: { $ilike: '%john%' } } });
+    const byIds = await User.findAll({ where: { id: { $in: [1, 2, 3] } } });
+    console.log(adults.length, byName.length, byIds.length);
 
     // Update user
     await User.update(

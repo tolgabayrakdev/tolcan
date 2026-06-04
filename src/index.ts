@@ -2,7 +2,9 @@
 export {
   Database,
   Model,
+  ModelClass,
   QueryBuilder,
+  quoteIdent,
   Transaction,
   transaction,
 } from './core';

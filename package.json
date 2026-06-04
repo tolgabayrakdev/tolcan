@@ -12,6 +12,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -25,14 +27,17 @@
     "uuid",
     "transaction"
   ],
-  "author": "",
+  "author": "Tolga Bayrak",
   "license": "Unlicense",
   "dependencies": {
     "pg": "^8.11.3"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.10.0",
     "@types/pg": "^8.10.9",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
     "typescript": "^5.3.3"
   },
   "peerDependencies": {
@@ -42,4 +47,3 @@
     "node": ">=14.17.0"
   }
 }
-

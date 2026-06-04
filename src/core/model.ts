@@ -8,12 +8,17 @@ import {
   PrimaryKeyType,
 } from './types';
 
+/**
+ * A concrete Model subclass constructor that also carries Model's statics.
+ * Used as the `this` type of static query methods so they can return
+ * properly-typed instances of the calling subclass.
+ */
+export type ModelClass<T extends Model> = (new () => T) & typeof Model;
+
 export abstract class Model {
   static tableName?: string;
-  static primaryKey?: string = 'id';
-  static primaryKeyType?: PrimaryKeyType = 'serial';
-
-  [key: string]: any;
+  static primaryKey: string = 'id';
+  static primaryKeyType: PrimaryKeyType = 'serial';
 
   abstract getTableName(): string;
   abstract getPrimaryKey(): string;
@@ -23,8 +28,7 @@ export abstract class Model {
       return this.tableName;
     }
     // Derive table name from class name (e.g., User -> users)
-    const className = this.name;
-    return `${className.toLowerCase()}s`;
+    return `${this.name.toLowerCase()}s`;
   }
 
   static getPrimaryKey(): string {
@@ -37,28 +41,36 @@ export abstract class Model {
 
   static query(client?: any): QueryBuilder {
     const database = Database.getInstance();
-    const tableName = (this as any).getTableName();
-    const primaryKeyType = (this as any).getPrimaryKeyType();
-    const primaryKey = (this as any).getPrimaryKey();
-    return new QueryBuilder(database, tableName, client, primaryKeyType, primaryKey);
+    return new QueryBuilder(
+      database,
+      this.getTableName(),
+      client,
+      this.getPrimaryKeyType(),
+      this.getPrimaryKey()
+    );
   }
 
-  static async find(id: any, options?: QueryOptions): Promise<Model | null> {
-    const primaryKey = (this as any).getPrimaryKey();
+  static async find<T extends Model>(
+    this: ModelClass<T>,
+    id: any,
+    options?: QueryOptions
+  ): Promise<T | null> {
+    const primaryKey = this.getPrimaryKey();
     const result = await this.query(options?.client)
       .where({ [primaryKey]: id })
       .first();
-    
+
     if (!result) {
       return null;
     }
 
-    const instance = new (this as any)();
-    Object.assign(instance, result);
-    return instance;
+    return Object.assign(new (this as unknown as new () => T)(), result) as T;
   }
 
-  static async findAll(options?: SelectOptions): Promise<Model[]> {
+  static async findAll<T extends Model>(
+    this: ModelClass<T>,
+    options?: SelectOptions
+  ): Promise<T[]> {
     const builder = this.query(options?.client);
 
     if (options?.where) {
@@ -73,47 +85,40 @@ export abstract class Model {
       }
     }
 
-    if (options?.limit) {
+    if (options?.limit !== undefined) {
       builder.limit(options.limit);
     }
 
-    if (options?.offset) {
+    if (options?.offset !== undefined) {
       builder.offset(options.offset);
     }
 
     const results = await builder.select();
-    return results.map((row: any) => {
-      const instance = new (this as any)();
-      Object.assign(instance, row);
-      return instance;
-    });
+    return results.map((row: any) => Object.assign(new (this as unknown as new () => T)(), row) as T);
   }
 
-  static async findOne(options?: SelectOptions): Promise<Model | null> {
-    const results = await this.findAll({ ...options, limit: 1 });
+  static async findOne<T extends Model>(
+    this: ModelClass<T>,
+    options?: SelectOptions
+  ): Promise<T | null> {
+    const results = await (this as any).findAll({ ...options, limit: 1 });
     return results.length > 0 ? results[0] : null;
   }
 
-  static async create(data: Record<string, any>, options?: QueryOptions): Promise<Model> {
-    const primaryKey = (this as any).getPrimaryKey();
-    const primaryKeyType = (this as any).getPrimaryKeyType();
-    
-    // If UUID type and primary key not provided, it will be auto-generated in insert
-    const insertData = { ...data };
-    if (primaryKeyType === 'uuid' && !insertData[primaryKey]) {
-      // UUID will be generated in QueryBuilder.insert()
-    }
-    
-    const result = await this.query(options?.client).insert(insertData);
-    const instance = new (this as any)();
-    Object.assign(instance, result);
-    return instance;
+  static async create<T extends Model>(
+    this: ModelClass<T>,
+    data: Record<string, any>,
+    options?: QueryOptions
+  ): Promise<T> {
+    const result = await this.query(options?.client).insert(data);
+    return Object.assign(new (this as unknown as new () => T)(), result) as T;
   }
 
-  static async update(
+  static async update<T extends Model>(
+    this: ModelClass<T>,
     data: Record<string, any>,
     options?: UpdateOptions
-  ): Promise<Model[]> {
+  ): Promise<T[]> {
     const builder = this.query(options?.client);
 
     if (options?.where) {
@@ -123,11 +128,7 @@ export abstract class Model {
     }
 
     const results = await builder.update(data);
-    return results.map((row: any) => {
-      const instance = new (this as any)();
-      Object.assign(instance, row);
-      return instance;
-    });
+    return results.map((row: any) => Object.assign(new (this as unknown as new () => T)(), row) as T);
   }
 
   static async delete(options?: DeleteOptions): Promise<number> {
@@ -164,33 +165,28 @@ export abstract class Model {
   }
 
   async save(options?: QueryOptions): Promise<this> {
-    const primaryKey = (this.constructor as any).getPrimaryKey();
-    const tableName = (this.constructor as any).getTableName();
-    const database = Database.getInstance();
+    const ModelClass = this.constructor as typeof Model;
+    const primaryKey = ModelClass.getPrimaryKey();
 
     const data: Record<string, any> = {};
-    for (const key in this) {
-      if (this.hasOwnProperty(key) && key !== primaryKey && typeof this[key] !== 'function') {
-        data[key] = this[key];
+    const self = this as Record<string, any>;
+    for (const key of Object.keys(self)) {
+      if (key !== primaryKey && typeof self[key] !== 'function') {
+        data[key] = self[key];
       }
     }
 
-    const ModelClass = this.constructor as typeof Model;
-    
-    if (this[primaryKey]) {
+    if (self[primaryKey] !== undefined && self[primaryKey] !== null) {
       // Update existing record
-      const builder = ModelClass.query(options?.client);
-      const result = await builder
-        .where({ [primaryKey]: this[primaryKey] })
+      const result = await ModelClass.query(options?.client)
+        .where({ [primaryKey]: self[primaryKey] })
         .update(data);
-      
+
       if (result.length > 0) {
         Object.assign(this, result[0]);
       }
     } else {
-      // Insert new record
-      const primaryKeyType = (ModelClass as any).getPrimaryKeyType();
-      // If UUID type, it will be auto-generated in insert
+      // Insert new record (UUID is auto-generated in QueryBuilder.insert)
       const result = await ModelClass.query(options?.client).insert(data);
       Object.assign(this, result);
     }
@@ -199,26 +195,28 @@ export abstract class Model {
   }
 
   async delete(options?: QueryOptions): Promise<boolean> {
-    const primaryKey = (this.constructor as any).getPrimaryKey();
     const ModelClass = this.constructor as typeof Model;
+    const primaryKey = ModelClass.getPrimaryKey();
+    const self = this as Record<string, any>;
 
-    if (!this[primaryKey]) {
+    if (self[primaryKey] === undefined || self[primaryKey] === null) {
       throw new Error('Cannot delete a model without a primary key value');
     }
 
-    const builder = ModelClass.query(options?.client);
-    const deleted = await builder.where({ [primaryKey]: this[primaryKey] }).delete();
+    const deleted = await ModelClass.query(options?.client)
+      .where({ [primaryKey]: self[primaryKey] })
+      .delete();
     return deleted > 0;
   }
 
   toJSON(): Record<string, any> {
     const json: Record<string, any> = {};
-    for (const key in this) {
-      if (this.hasOwnProperty(key) && typeof this[key] !== 'function') {
-        json[key] = this[key];
+    const self = this as Record<string, any>;
+    for (const key of Object.keys(self)) {
+      if (typeof self[key] !== 'function') {
+        json[key] = self[key];
       }
     }
     return json;
   }
 }
-
